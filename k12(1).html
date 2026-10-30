@@ -1,0 +1,1307 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <title>语文错字本</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Serif+SC:wght@600;700&display=swap" rel="stylesheet" />
+  <!-- Hanzi Writer -->
+  <script src="https://cdn.jsdelivr.net/npm/hanzi-writer@3.5/dist/hanzi-writer.min.js"></script>
+  <!-- Pinyin-Pro -->
+  <script src="https://cdn.jsdelivr.net/npm/pinyin-pro@3.19.6/dist/index.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            bg: '#F7F6F2',
+            surface: '#FFFFFF',
+            subtle: '#EFECE6',
+            line: '#E4DFD3',
+            ink: '#1E242B',
+            muted: '#7A828A',
+            cinnabar: '#D64541',
+            cinnabarDark: '#B8332F',
+            jade: '#2A8556'
+          },
+          fontFamily: {
+            sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'PingFang SC', 'sans-serif'],
+            serif: ['"Noto Serif SC"', 'STKaiti', 'KaiTi', 'serif']
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    body {
+      background-color: #F7F6F2;
+      color: #1E242B;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    input, textarea {
+      user-select: text;
+      -webkit-user-select: text;
+    }
+
+    /* 标准红色虚线米字/田字格 */
+    .tianzige {
+      position: relative;
+      background-color: #FFFDF9;
+      border: 2.5px solid #D64541;
+      border-radius: 18px;
+      box-shadow: inset 0 0 16px rgba(214, 69, 65, 0.04);
+      overflow: hidden;
+      touch-action: none;
+    }
+    .tianzige-grid {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1;
+    }
+    .hanzi-layer {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* 3D 翻转卡片容器 */
+    .flip-perspective {
+      perspective: 1400px;
+    }
+    .flip-card-inner {
+      position: relative;
+      width: 100%;
+      transition: transform 0.65s cubic-bezier(0.22, 1, 0.36, 1);
+      transform-style: preserve-3d;
+    }
+    .flip-card-inner.is-flipped {
+      transform: rotateY(180deg);
+    }
+    .flip-face {
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      width: 100%;
+    }
+    .flip-face-back {
+      position: absolute;
+      inset: 0;
+      transform: rotateY(180deg);
+    }
+
+    /* 轻量淡入动画 */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade {
+      animation: fadeUp 0.22s ease-out forwards;
+    }
+  </style>
+</head>
+
+<body class="min-h-screen flex flex-col antialiased">
+
+  <!-- ==================== 顶部极简分段导航 ==================== -->
+  <header class="pt-5 pb-3 px-4 flex flex-col items-center justify-center sticky top-0 z-30 bg-bg/90 backdrop-blur-md">
+    <nav class="inline-flex p-1.5 rounded-2xl bg-subtle/90 border border-line shadow-xs">
+      <button onclick="switchTab('entry')" id="tab-btn-entry"
+        class="px-5 sm:px-7 py-2 rounded-xl text-sm font-semibold transition-all">
+        生字录入
+      </button>
+      <button onclick="switchTab('review')" id="tab-btn-review"
+        class="px-5 sm:px-7 py-2 rounded-xl text-sm font-semibold transition-all flex items-center gap-1.5">
+        <span>卡片复习</span>
+        <span id="nav-review-badge" class="px-1.5 py-0.2 rounded-full text-[11px] bg-cinnabar text-white font-bold">0</span>
+      </button>
+      <button onclick="switchTab('library')" id="tab-btn-library"
+        class="px-5 sm:px-7 py-2 rounded-xl text-sm font-semibold transition-all">
+        我的字库
+      </button>
+    </nav>
+  </header>
+
+  <!-- ==================== 主内容区 ==================== -->
+  <main class="flex-1 flex flex-col justify-center max-w-4xl w-full mx-auto px-4 py-4 sm:py-6">
+
+    <!-- ==================== 1. 生字录入模块（极简纯净） ==================== -->
+    <section id="view-entry" class="animate-fade">
+      <div class="bg-surface rounded-3xl border border-line shadow-sm p-6 sm:p-10">
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
+
+          <!-- 左侧：田字格笔顺实时预览 (5列) -->
+          <div class="md:col-span-5 flex flex-col items-center justify-center">
+            <div id="entry-preview-pinyin" class="text-2xl sm:text-3xl font-bold text-cinnabar tracking-wider mb-3 h-9">
+              bá
+            </div>
+
+            <div class="tianzige w-52 h-52 sm:w-60 sm:h-60">
+              <svg class="tianzige-grid" viewBox="0 0 100 100" preserveAspectRatio="none">
+                <line x1="0" y1="50" x2="100" y2="50" stroke="#D64541" stroke-width="0.8" stroke-dasharray="4,3" opacity="0.55" />
+                <line x1="50" y1="0" x2="50" y2="100" stroke="#D64541" stroke-width="0.8" stroke-dasharray="4,3" opacity="0.55" />
+                <line x1="0" y1="0" x2="100" y2="100" stroke="#D64541" stroke-width="0.5" stroke-dasharray="3,4" opacity="0.3" />
+                <line x1="100" y1="0" x2="0" y2="100" stroke="#D64541" stroke-width="0.5" stroke-dasharray="3,4" opacity="0.3" />
+              </svg>
+              <div id="entry-hanzi-box" class="hanzi-layer"></div>
+            </div>
+
+            <div class="flex items-center gap-2 mt-4">
+              <button type="button" onclick="replayEntryStroke(1)"
+                class="px-3.5 py-1.5 rounded-full bg-subtle hover:bg-line/70 text-xs font-medium text-ink flex items-center gap-1.5 transition active:scale-95">
+                <i class="fa-solid fa-rotate-right text-cinnabar"></i>重播笔顺
+              </button>
+              <button type="button" onclick="replayEntryStroke(0.45)"
+                class="px-3.5 py-1.5 rounded-full bg-subtle hover:bg-line/70 text-xs font-medium text-ink flex items-center gap-1.5 transition active:scale-95">
+                <i class="fa-solid fa-gauge-simple-low text-muted"></i>慢放
+              </button>
+            </div>
+          </div>
+
+          <!-- 右侧：极简录入表单 (7列) -->
+          <div class="md:col-span-7 space-y-4">
+            <!-- 生字 + 自动拼音 + 年级 -->
+            <div class="grid grid-cols-12 gap-3">
+              <div class="col-span-4">
+                <label class="block text-xs font-medium text-muted mb-1.5">易错字</label>
+                <input id="entry-char" type="text" maxlength="2" placeholder="拔"
+                  oninput="onEntryCharInput()"
+                  class="w-full h-12 px-3 text-center text-2xl font-serif font-bold rounded-2xl border border-line bg-bg focus:bg-white focus:border-cinnabar focus:outline-none transition" />
+              </div>
+
+              <div class="col-span-4">
+                <label class="block text-xs font-medium text-muted mb-1.5">汉语拼音</label>
+                <input id="entry-pinyin" type="text" placeholder="bá"
+                  oninput="document.getElementById('entry-preview-pinyin').textContent = this.value"
+                  class="w-full h-12 px-3 text-center text-lg font-semibold text-cinnabar rounded-2xl border border-line bg-bg focus:bg-white focus:border-cinnabar focus:outline-none transition" />
+              </div>
+
+              <div class="col-span-4">
+                <label class="block text-xs font-medium text-muted mb-1.5">年级</label>
+                <select id="entry-grade"
+                  class="w-full h-12 px-2.5 text-sm font-medium rounded-2xl border border-line bg-bg focus:bg-white focus:border-cinnabar focus:outline-none transition">
+                  <optgroup label="小学">
+                    <option value="一年级">一年级</option>
+                    <option value="二年级">二年级</option>
+                    <option value="三年级" selected>三年级</option>
+                    <option value="四年级">四年级</option>
+                    <option value="五年级">五年级</option>
+                    <option value="六年级">六年级</option>
+                  </optgroup>
+                  <optgroup label="初中">
+                    <option value="初一">初一</option>
+                    <option value="初二">初二</option>
+                    <option value="初三">初三</option>
+                  </optgroup>
+                  <optgroup label="高中">
+                    <option value="高一">高一</option>
+                    <option value="高二">高二</option>
+                    <option value="高三">高三</option>
+                  </optgroup>
+                </select>
+              </div>
+            </div>
+
+            <!-- 造词 (3-5组) -->
+            <div>
+              <label class="block text-xs font-medium text-muted mb-1.5">造词（3-5组，用逗号或空格分隔）</label>
+              <input id="entry-words" type="text" placeholder="拔草, 挺拔, 选拔, 拔河"
+                oninput="onEntryWordsChange()"
+                class="w-full h-12 px-4 text-sm font-medium rounded-2xl border border-line bg-bg focus:bg-white focus:border-cinnabar focus:outline-none transition" />
+            </div>
+
+            <!-- 造句 (加强记忆) -->
+            <div>
+              <label class="block text-xs font-medium text-muted mb-1.5">造句（用于卡片背面语境强化）</label>
+              <textarea id="entry-sentence" rows="2" placeholder="山峰高耸挺拔，大家正在山脚下比赛拔河。"
+                class="w-full p-3.5 text-sm leading-relaxed rounded-2xl border border-line bg-bg focus:bg-white focus:border-cinnabar focus:outline-none resize-none transition"></textarea>
+            </div>
+
+            <!-- 保存按钮 -->
+            <div class="pt-2">
+              <button type="button" onclick="saveEntryWord()"
+                class="w-full h-13 py-3.5 rounded-2xl bg-cinnabar hover:bg-cinnabarDark text-white font-semibold text-base shadow-sm transition active:scale-[0.99] flex items-center justify-center gap-2">
+                <i class="fa-solid fa-plus"></i>
+                <span>加入错字本</span>
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 2. 卡片复习模块（3D翻转卡片 + 空白田字格手写识别正确率） ==================== -->
+    <section id="view-review" class="hidden animate-fade">
+      <!-- 空状态 -->
+      <div id="review-empty-state" class="hidden bg-surface rounded-3xl border border-line p-12 text-center max-w-lg mx-auto space-y-4">
+        <div class="w-14 h-14 rounded-full bg-jade/10 text-jade mx-auto flex items-center justify-center text-2xl">
+          <i class="fa-solid fa-check"></i>
+        </div>
+        <h3 class="text-xl font-serif font-bold">待复习生字已全部掌握</h3>
+        <p class="text-sm text-muted">所有错字均已累计 3 次达标并移入「已掌握」字库</p>
+        <div class="pt-2 flex justify-center gap-3">
+          <button onclick="switchTab('entry')" class="px-5 py-2.5 rounded-2xl bg-cinnabar text-white text-sm font-semibold">录入新字</button>
+          <button onclick="switchTab('library')" class="px-5 py-2.5 rounded-2xl bg-subtle text-ink text-sm font-semibold">查看字库</button>
+        </div>
+      </div>
+
+      <!-- 3D翻转复习主舞台 -->
+      <div id="review-card-stage" class="max-w-xl mx-auto">
+        <!-- 顶部进度与洗牌栏 -->
+        <div class="flex items-center justify-between px-2 mb-3 text-xs font-medium text-muted">
+          <span id="review-counter-label">第 1 / 6 字</span>
+          <button onclick="startReviewSession(true)" class="hover:text-ink flex items-center gap-1 transition">
+            <i class="fa-solid fa-shuffle text-cinnabar"></i>随机打乱
+          </button>
+        </div>
+
+        <!-- 3D Flip 容器 -->
+        <div class="flip-perspective">
+          <div id="review-flip-inner" class="flip-card-inner min-h-[520px] sm:min-h-[540px]">
+
+            <!-- ========== 【卡片正面：空白田字格手写默写 + 实时识别正确率】 ========== -->
+            <div class="flip-face bg-surface rounded-3xl border border-line shadow-sm p-6 sm:p-8 flex flex-col justify-between min-h-[520px] sm:min-h-[540px]">
+              <!-- 正面头部：大拼音 + 挖空组词拼音防混淆 + 3点进度 -->
+              <div>
+                <div class="flex items-center justify-between mb-3">
+                  <span id="front-grade-tag" class="text-xs px-2.5 py-0.5 rounded-full bg-subtle text-muted font-medium">三年级</span>
+                  <div class="flex items-center gap-1.5" title="累计掌握满3次自动归入已掌握">
+                    <span class="text-xs text-muted mr-1">掌握度</span>
+                    <div id="front-progress-dots" class="flex items-center gap-1.5"></div>
+                  </div>
+                </div>
+
+                <!-- 大号汉语拼音 & 挖空带拼音组词提示 -->
+                <div class="text-center space-y-2">
+                  <div id="front-pinyin" class="text-4xl sm:text-5xl font-bold text-cinnabar tracking-wider">bá</div>
+                  <div id="front-masked-hints" class="flex flex-wrap items-center justify-center gap-2 pt-1"></div>
+                </div>
+              </div>
+
+              <!-- 正面中央：空白红色田字格（手写识别区） -->
+              <div class="flex flex-col items-center my-4">
+                <div class="tianzige w-60 h-60 sm:w-64 sm:h-64">
+                  <svg class="tianzige-grid" viewBox="0 0 100 100" preserveAspectRatio="none">
+                    <line x1="0" y1="50" x2="100" y2="50" stroke="#D64541" stroke-width="0.8" stroke-dasharray="4,3" opacity="0.55" />
+                    <line x1="50" y1="0" x2="50" y2="100" stroke="#D64541" stroke-width="0.8" stroke-dasharray="4,3" opacity="0.55" />
+                    <line x1="0" y1="0" x2="100" y2="100" stroke="#D64541" stroke-width="0.5" stroke-dasharray="3,4" opacity="0.3" />
+                    <line x1="100" y1="0" x2="0" y2="100" stroke="#D64541" stroke-width="0.5" stroke-dasharray="3,4" opacity="0.3" />
+                  </svg>
+                  <div id="front-quiz-box" class="hanzi-layer"></div>
+                </div>
+
+                <!-- 实时手写识别正确率与笔画进度反馈 -->
+                <div class="mt-3 flex items-center gap-3 text-xs font-medium">
+                  <span id="front-stroke-status" class="text-muted">请在空白田字格中直接手写</span>
+                  <span class="text-line">|</span>
+                  <span class="text-ink">识别正确率：<strong id="front-accuracy-val" class="text-jade font-bold">100%</strong></span>
+                </div>
+              </div>
+
+              <!-- 正面底部操作 -->
+              <div class="flex items-center justify-between gap-3 pt-2 border-t border-line/60">
+                <button type="button" onclick="resetFrontHandwriting()"
+                  class="px-4 py-2.5 rounded-2xl bg-subtle hover:bg-line/70 text-ink text-xs sm:text-sm font-semibold transition active:scale-95">
+                  <i class="fa-solid fa-eraser mr-1 text-muted"></i>重写本字
+                </button>
+
+                <button type="button" onclick="flipCardToBack(false)"
+                  class="px-5 py-2.5 rounded-2xl bg-ink hover:bg-slate-800 text-white text-xs sm:text-sm font-semibold transition active:scale-95 flex items-center gap-1.5">
+                  <span>翻转看答案</span>
+                  <i class="fa-solid fa-rotate"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- ========== 【卡片背面：动态笔顺 + 3~5组造词 + 造句深度记忆】 ========== -->
+            <div class="flip-face flip-face-back bg-surface rounded-3xl border border-line shadow-sm p-6 sm:p-8 flex flex-col justify-between min-h-[520px] sm:min-h-[540px]">
+              <!-- 背面顶部：识别正确率结果与掌握度状态 -->
+              <div class="flex items-center justify-between pb-3 border-b border-line/60">
+                <div id="back-eval-badge" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-jade/10 text-jade">
+                  <i class="fa-solid fa-circle-check"></i>
+                  <span>识别正确率 100% · 掌握度 +1</span>
+                </div>
+                <div id="back-progress-dots" class="flex items-center gap-1.5"></div>
+              </div>
+
+              <!-- 背面主体：左/上田字格笔顺动画 + 右/下造词造句 -->
+              <div class="grid grid-cols-1 sm:grid-cols-12 gap-6 items-center my-auto py-3">
+                <!-- 田字格标准笔顺动画 (5列) -->
+                <div class="sm:col-span-5 flex flex-col items-center">
+                  <div class="tianzige w-40 h-40 sm:w-44 sm:h-44">
+                    <svg class="tianzige-grid" viewBox="0 0 100 100" preserveAspectRatio="none">
+                      <line x1="0" y1="50" x2="100" y2="50" stroke="#D64541" stroke-width="0.8" stroke-dasharray="4,3" opacity="0.55" />
+                      <line x1="50" y1="0" x2="50" y2="100" stroke="#D64541" stroke-width="0.8" stroke-dasharray="4,3" opacity="0.55" />
+                      <line x1="0" y1="0" x2="100" y2="100" stroke="#D64541" stroke-width="0.5" stroke-dasharray="3,4" opacity="0.3" />
+                      <line x1="100" y1="0" x2="0" y2="100" stroke="#D64541" stroke-width="0.5" stroke-dasharray="3,4" opacity="0.3" />
+                    </svg>
+                    <div id="back-anim-box" class="hanzi-layer"></div>
+                  </div>
+                  <div class="flex items-center gap-2 mt-2.5">
+                    <button type="button" onclick="replayBackStroke(1)"
+                      class="px-3 py-1 rounded-full bg-subtle text-xs font-medium text-ink hover:bg-line transition">
+                      <i class="fa-solid fa-play text-cinnabar mr-1"></i>重播
+                    </button>
+                    <button type="button" onclick="replayBackStroke(0.4)"
+                      class="px-3 py-1 rounded-full bg-subtle text-xs font-medium text-ink hover:bg-line transition">
+                      慢速
+                    </button>
+                  </div>
+                </div>
+
+                <!-- 拼音、造词(3-5组)、造句强化 (7列) -->
+                <div class="sm:col-span-7 space-y-4 text-center sm:text-left">
+                  <div class="flex items-baseline justify-center sm:justify-start gap-3">
+                    <span id="back-char-title" class="text-4xl font-serif font-bold text-ink">拔</span>
+                    <span id="back-pinyin-title" class="text-2xl font-bold text-cinnabar">bá</span>
+                  </div>
+
+                  <!-- 3-5组造词胶囊 -->
+                  <div class="space-y-1.5">
+                    <div class="text-xs font-medium text-muted">常用造词</div>
+                    <div id="back-words-tags" class="flex flex-wrap justify-center sm:justify-start gap-2"></div>
+                  </div>
+
+                  <!-- 记忆造句 -->
+                  <div class="space-y-1.5">
+                    <div class="text-xs font-medium text-muted">造句记忆</div>
+                    <div id="back-sentence-box" class="p-3.5 rounded-2xl bg-bg border border-line text-sm leading-relaxed text-ink"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 背面底部操作栏 -->
+              <div class="flex items-center justify-between gap-3 pt-3 border-t border-line/60">
+                <button type="button" onclick="flipBackToFrontRewrite()"
+                  class="px-4 py-2.5 rounded-2xl bg-subtle hover:bg-line/70 text-ink text-xs sm:text-sm font-semibold transition active:scale-95">
+                  <i class="fa-solid fa-rotate-left mr-1"></i>再写一遍
+                </button>
+
+                <button type="button" onclick="nextReviewCard()"
+                  class="flex-1 sm:flex-initial px-7 py-2.5 rounded-2xl bg-cinnabar hover:bg-cinnabarDark text-white text-xs sm:text-sm font-semibold shadow-xs transition active:scale-95 flex items-center justify-center gap-2">
+                  <span>下一个</span>
+                  <i class="fa-solid fa-arrow-right"></i>
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 3. 我的字库模块（待复习 / 已掌握 / K12导入） ==================== -->
+    <section id="view-library" class="hidden space-y-5 animate-fade">
+      <!-- 顶部筛选控制栏 -->
+      <div class="bg-surface rounded-2xl border border-line p-3 sm:p-4 flex flex-wrap items-center justify-between gap-3">
+        <!-- 待复习 / 已掌握切换 -->
+        <div class="inline-flex p-1 rounded-xl bg-subtle">
+          <button onclick="setLibraryStatus('learning')" id="lib-tab-learning"
+            class="px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition">
+            待复习 (<span id="lib-count-learning">0</span>)
+          </button>
+          <button onclick="setLibraryStatus('mastered')" id="lib-tab-mastered"
+            class="px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition">
+            已掌握 (<span id="lib-count-mastered">0</span>)
+          </button>
+        </div>
+
+        <!-- 年级筛选 & 导入导出按钮 -->
+        <div class="flex items-center gap-2">
+          <select id="lib-grade-filter" onchange="renderLibraryGrid()"
+            class="h-9 px-3 text-xs sm:text-sm rounded-xl border border-line bg-bg focus:outline-none">
+            <option value="ALL">全部年级 (小一~高三)</option>
+            <option value="小学">小学阶段</option>
+            <option value="初中">初中阶段</option>
+            <option value="高中">高中阶段</option>
+          </select>
+
+          <button onclick="openImportModal()" title="批量导入/导出K12字库"
+            class="h-9 px-3 rounded-xl bg-subtle hover:bg-line text-ink text-xs font-medium flex items-center gap-1.5 transition">
+            <i class="fa-solid fa-file-import text-cinnabar"></i>
+            <span class="hidden sm:inline">字库导入/导出</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 字库网格 -->
+      <div id="library-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5"></div>
+    </section>
+
+  </main>
+
+  <!-- ==================== 弹窗 1：单字详情 Modal ==================== -->
+  <div id="detail-modal" class="hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-surface rounded-3xl border border-line shadow-xl max-w-md w-full p-6 animate-fade space-y-5">
+      <div class="flex items-center justify-between">
+        <div class="flex items-baseline gap-2.5">
+          <span id="modal-char" class="text-3xl font-serif font-bold">拔</span>
+          <span id="modal-pinyin" class="text-xl font-bold text-cinnabar">bá</span>
+          <span id="modal-grade" class="text-xs px-2 py-0.5 rounded-full bg-subtle text-muted">三年级</span>
+        </div>
+        <button onclick="closeDetailModal()" class="w-8 h-8 rounded-full bg-subtle text-muted hover:text-ink">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="flex flex-col items-center">
+        <div class="tianzige w-44 h-44">
+          <svg class="tianzige-grid" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <line x1="0" y1="50" x2="100" y2="50" stroke="#D64541" stroke-width="0.8" stroke-dasharray="4,3" opacity="0.55" />
+            <line x1="50" y1="0" x2="50" y2="100" stroke="#D64541" stroke-width="0.8" stroke-dasharray="4,3" opacity="0.55" />
+            <line x1="0" y1="0" x2="100" y2="100" stroke="#D64541" stroke-width="0.5" stroke-dasharray="3,4" opacity="0.3" />
+            <line x1="100" y1="0" x2="0" y2="100" stroke="#D64541" stroke-width="0.5" stroke-dasharray="3,4" opacity="0.3" />
+          </svg>
+          <div id="modal-hanzi-box" class="hanzi-layer"></div>
+        </div>
+      </div>
+
+      <div class="space-y-3 text-sm">
+        <div>
+          <span class="text-xs text-muted block mb-1">造词</span>
+          <div id="modal-words" class="flex flex-wrap gap-1.5"></div>
+        </div>
+        <div>
+          <span class="text-xs text-muted block mb-1">造句</span>
+          <div id="modal-sentence" class="p-3 rounded-2xl bg-bg border border-line text-xs sm:text-sm leading-relaxed"></div>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between pt-2 border-t border-line">
+        <button id="modal-delete-btn" class="text-xs text-cinnabar hover:underline">删除该字</button>
+        <button id="modal-toggle-status-btn" class="px-4 py-2 rounded-xl bg-subtle hover:bg-line text-xs font-semibold text-ink transition"></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 弹窗 2：极简 K12 字库批量导入/导出 Modal ==================== -->
+  <div id="import-modal" class="hidden fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-surface rounded-3xl border border-line shadow-xl max-w-lg w-full p-6 animate-fade space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-base font-bold">字库批量导入 / 导出</h3>
+        <button onclick="closeImportModal()" class="w-8 h-8 rounded-full bg-subtle text-muted hover:text-ink">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <textarea id="import-json-input" rows="6"
+        placeholder='[{"char":"赢","words":["输赢","赢家","共赢"],"sentence":"我们要凭实力赢得这场比赛。","grade":"四年级"}]'
+        class="w-full p-3.5 text-xs font-mono rounded-2xl border border-line bg-bg focus:bg-white focus:border-cinnabar focus:outline-none"></textarea>
+
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <div class="flex gap-2">
+          <button onclick="exportJsonData()" class="px-3.5 py-2 rounded-xl bg-subtle hover:bg-line text-xs font-semibold">
+            导出备份 JSON
+          </button>
+          <button onclick="restoreInitialWords()" class="px-3.5 py-2 rounded-xl bg-subtle hover:bg-line text-xs text-muted">
+            恢复默认演示字库
+          </button>
+        </div>
+        <button onclick="confirmImportJson()" class="px-5 py-2 rounded-xl bg-cinnabar text-white text-xs font-semibold">
+          确认导入
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 轻提示 Toast -->
+  <div id="toast-box" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 pointer-events-none"></div>
+
+  <!-- ==================== 核心逻辑脚本 ==================== -->
+  <script>
+    const STORAGE_KEY = 'k12_hanzi_clean_v2';
+
+    // 内置常用易错字词句速查字典（当用户录入单字时自动补全 3-5 组造词与造句）
+    const BUILTIN_DICT = {
+      '拔': { words: ['拔草', '挺拔', '选拔', '拔河'], sentence: '山峰高耸挺拔，同学们正在山脚下热情地比赛拔河。', grade: '三年级' },
+      '拨': { words: ['拨打', '拨款', '挑拨', '点拨'], sentence: '经过老师的耐心地指点与点拨，我终于解开了这道难题。', grade: '三年级' },
+      '候': { words: ['时候', '等候', '气候', '问候'], sentence: '每当过年的时候，我们都会向远方的长辈送上温暖的问候。', grade: '二年级' },
+      '侯': { words: ['王侯', '诸侯', '侯爵', '封侯'], sentence: '陈胜在田间豪迈地喊道：“王侯将相宁有种乎！”', grade: '五年级' },
+      '具': { words: ['文具', '具体', '玩具', '具备'], sentence: '出发露营前，请大家把需要携带的文具和工具清点具体。', grade: '三年级' },
+      '虐': { words: ['肆虐', '暴虐', '虐待', '助纣为虐'], sentence: '防风林像钢铁卫士一样，挡住了在沙漠边缘肆虐的风沙。', grade: '五年级' },
+      '贯': { words: ['连贯', '全神贯注', '贯通', '如雷贯耳'], sentence: '课堂上同学们全神贯注地听讲，朗读声清脆而又连贯。', grade: '四年级' },
+      '炙': { words: ['脍炙人口', '炙手可热', '残羹冷炙', '炙烤'], sentence: '这首描写江南春景的古诗朗朗上口，千百年来一直脍炙人口。', grade: '初二' },
+      '琴': { words: ['钢琴', '古琴', '琴声', '口琴'], sentence: '傍晚的校园里传来了悠扬的钢琴声，让人心情格外宁静。', grade: '二年级' },
+      '初': { words: ['起初', '当初', '初夏', '和好如初'], sentence: '起初我以为这道题很难，认真画图分析后才发现并不复杂。', grade: '二年级' },
+      '隆': { words: ['隆重', '轰隆', '兴隆', '隆冬'], sentence: '伴随着轰隆隆的春雷声，大地迎来了生机勃勃的春天。', grade: '四年级' },
+      '暇': { words: ['闲暇', '目不暇接', '无暇顾及', '自顾不暇'], sentence: '灯会上的彩灯造型各异，令人看得眼花缭乱、目不暇接。', grade: '初三' },
+      '冕': { words: ['加冕', '冠冕堂皇', '卫冕', '日冕'], sentence: '这位运动员凭借顽强的毅力成功卫冕，再次站上了冠军领奖台。', grade: '高一' },
+      '赢': { words: ['输赢', '赢家', '共赢', '赢得'], sentence: '真正优秀的团队看重合作共赢，而不只计较一时的输赢。', grade: '四年级' }
+    };
+
+    // 初始内置的 8 个测试易错字（其中「候」、「具」初始进度设为 2/3，手写对 1 次即可直接达成 3/3 掌握）
+    const INITIAL_WORDS = [
+      {
+        char: '拔',
+        pinyin: 'bá',
+        words: ['拔草', '挺拔', '选拔', '拔河'],
+        sentence: '山峰高耸挺拔，同学们正在山脚下热情地比赛拔河。',
+        grade: '三年级',
+        count: 1,
+        mastered: false
+      },
+      {
+        char: '拨',
+        pinyin: 'bō',
+        words: ['拨打', '拨款', '挑拨', '点拨'],
+        sentence: '经过老师的耐心地指点与点拨，我终于解开了这道难题。',
+        grade: '三年级',
+        count: 0,
+        mastered: false
+      },
+      {
+        char: '候',
+        pinyin: 'hòu',
+        words: ['时候', '等候', '气候', '问候'],
+        sentence: '每当过年的时候，我们都会向远方的长辈送上温暖的问候。',
+        grade: '二年级',
+        count: 2,
+        mastered: false
+      },
+      {
+        char: '具',
+        pinyin: 'jù',
+        words: ['文具', '具体', '玩具', '具备'],
+        sentence: '出发露营前，请大家把需要携带的文具和工具清点具体。',
+        grade: '三年级',
+        count: 2,
+        mastered: false
+      },
+      {
+        char: '侯',
+        pinyin: 'hóu',
+        words: ['王侯', '诸侯', '侯爵', '封侯'],
+        sentence: '陈胜在田间豪迈地喊道：“王侯将相宁有种乎！”',
+        grade: '五年级',
+        count: 0,
+        mastered: false
+      },
+      {
+        char: '虐',
+        pinyin: 'nüè',
+        words: ['肆虐', '暴虐', '虐待', '助纣为虐'],
+        sentence: '防风林像钢铁卫士一样，挡住了在沙漠边缘肆虐的风沙。',
+        grade: '五年级',
+        count: 0,
+        mastered: false
+      },
+      {
+        char: '贯',
+        pinyin: 'guàn',
+        words: ['连贯', '全神贯注', '贯通', '如雷贯耳'],
+        sentence: '课堂上同学们全神贯注地听讲，朗读声清脆而又连贯。',
+        grade: '四年级',
+        count: 1,
+        mastered: false
+      },
+      {
+        char: '炙',
+        pinyin: 'zhì',
+        words: ['脍炙人口', '炙手可热', '残羹冷炙', '炙烤'],
+        sentence: '这首描写江南春景的古诗朗朗上口，千百年来一直脍炙人口。',
+        grade: '初二',
+        count: 3,
+        mastered: true
+      }
+    ];
+
+    let state = {
+      tab: 'entry',
+      words: [],
+      entryChar: '拔',
+      entryWriter: null,
+
+      // 卡片复习状态
+      reviewQueue: [],
+      reviewIdx: 0,
+      frontWriter: null,
+      backWriter: null,
+      currentMistakes: 0,
+      currentTotalStrokes: 8,
+      lastAccuracy: 100,
+      hasEvaluatedCurrent: false,
+
+      // 字库筛选状态
+      libStatus: 'learning', // 'learning' | 'mastered'
+      modalWriter: null
+    };
+
+    /**
+     * ============================================================================
+     * 工具函数：存储与智能拼音
+     * ============================================================================
+     */
+    function loadWords() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        state.words = raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(INITIAL_WORDS));
+      } catch (e) {
+        state.words = JSON.parse(JSON.stringify(INITIAL_WORDS));
+      }
+      updateBadges();
+    }
+
+    function saveWords() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state.words));
+      updateBadges();
+    }
+
+    function updateBadges() {
+      const learningCount = state.words.filter(w => !w.mastered).length;
+      const masteredCount = state.words.filter(w => w.mastered).length;
+      document.getElementById('nav-review-badge').textContent = learningCount;
+      document.getElementById('lib-count-learning').textContent = learningCount;
+      document.getElementById('lib-count-mastered').textContent = masteredCount;
+    }
+
+    function getPinyin(text, contextWords = []) {
+      if (!text) return '';
+      try {
+        if (window.pinyinPro) {
+          const { pinyin } = window.pinyinPro;
+          if (text.length === 1 && contextWords.length > 0) {
+            for (const w of contextWords) {
+              const idx = w.indexOf(text);
+              if (idx !== -1 && w.length > 1) {
+                const arr = pinyin(w, { type: 'array', toneType: 'symbol' });
+                if (arr && arr[idx]) return arr[idx];
+              }
+            }
+          }
+          return pinyin(text, { toneType: 'symbol' });
+        }
+      } catch (e) {}
+      return '';
+    }
+
+    function parseWordArray(str) {
+      if (Array.isArray(str)) return str;
+      return (str || '').split(/[,，、\s/]+/).map(s => s.trim()).filter(Boolean);
+    }
+
+    function renderDotsHtml(count = 0) {
+      return [0, 1, 2].map(i => {
+        const active = i < count;
+        return `<span class="w-2.5 h-2.5 rounded-full ${active ? 'bg-jade' : 'bg-line'} transition-all"></span>`;
+      }).join('');
+    }
+
+    function highlightTargetChar(text, targetChar) {
+      if (!text || !targetChar) return text || '';
+      return text.replaceAll(
+        targetChar,
+        `<span class="text-cinnabar font-bold underline decoration-cinnabar/40 underline-offset-4 px-0.5">${targetChar}</span>`
+      );
+    }
+
+    /**
+     * ============================================================================
+     * 模块 1：生字录入
+     * ============================================================================
+     */
+    function renderEntryWriter(char, speed = 1) {
+      const box = document.getElementById('entry-hanzi-box');
+      if (!box || !char) return;
+      box.innerHTML = '';
+      const size = Math.min(box.clientWidth || 200, box.clientHeight || 200) - 16;
+
+      state.entryWriter = HanziWriter.create(box, char, {
+        width: size,
+        height: size,
+        padding: 8,
+        showOutline: true,
+        strokeAnimationSpeed: speed,
+        delayBetweenStrokes: speed < 1 ? 400 : 180,
+        strokeColor: '#1E242B',
+        radicalColor: '#D64541',
+        outlineColor: '#E4DFD3',
+        onLoadCharDataSuccess: () => {
+          state.entryWriter.animateCharacter();
+        }
+      });
+    }
+
+    function onEntryCharInput() {
+      const raw = document.getElementById('entry-char').value.trim();
+      const char = (raw.match(/[\u4e00-\u9fa5]/) || [])[0];
+      if (!char) return;
+
+      document.getElementById('entry-char').value = char;
+      state.entryChar = char;
+
+      // 查找内置字典或自动生成默认组词造句
+      const dictItem = BUILTIN_DICT[char];
+      const wordsInput = document.getElementById('entry-words');
+      const sentenceInput = document.getElementById('entry-sentence');
+
+      if (dictItem) {
+        wordsInput.value = dictItem.words.join(', ');
+        sentenceInput.value = dictItem.sentence;
+        document.getElementById('entry-grade').value = dictItem.grade;
+      } else {
+        if (!wordsInput.value) wordsInput.value = `${char}字, 生${char}, 词${char}`;
+        if (!sentenceInput.value) sentenceInput.value = `今天我们在语文课上重点练习了「${char}」字的正确笔顺。`;
+      }
+
+      const py = getPinyin(char, parseWordArray(wordsInput.value));
+      document.getElementById('entry-pinyin').value = py;
+      document.getElementById('entry-preview-pinyin').textContent = py;
+
+      renderEntryWriter(char, 1);
+    }
+
+    function onEntryWordsChange() {
+      const char = (document.getElementById('entry-char').value.match(/[\u4e00-\u9fa5]/) || [])[0];
+      if (!char) return;
+      const words = parseWordArray(document.getElementById('entry-words').value);
+      const py = getPinyin(char, words);
+      if (py) {
+        document.getElementById('entry-pinyin').value = py;
+        document.getElementById('entry-preview-pinyin').textContent = py;
+      }
+    }
+
+    function replayEntryStroke(speed = 1) {
+      if (state.entryChar) renderEntryWriter(state.entryChar, speed);
+    }
+
+    function saveEntryWord() {
+      const char = (document.getElementById('entry-char').value.match(/[\u4e00-\u9fa5]/) || [])[0];
+      if (!char) {
+        showToast('请先输入一个汉字');
+        return;
+      }
+      const words = parseWordArray(document.getElementById('entry-words').value);
+      if (words.length === 0) {
+        showToast('请填写至少 1 个组词');
+        return;
+      }
+      const pinyin = document.getElementById('entry-pinyin').value.trim() || getPinyin(char, words);
+      const sentence = document.getElementById('entry-sentence').value.trim() || `请认真记住「${char}」字的写法。`;
+      const grade = document.getElementById('entry-grade').value;
+
+      const idx = state.words.findIndex(w => w.char === char);
+      if (idx !== -1) {
+        state.words[idx] = { char, pinyin, words, sentence, grade, count: 0, mastered: false };
+        showToast(`已更新「${char}」并重置复习进度`);
+      } else {
+        state.words.unshift({ char, pinyin, words, sentence, grade, count: 0, mastered: false });
+        showToast(`已将「${char}」加入错字本`);
+      }
+
+      saveWords();
+      document.getElementById('entry-char').value = '';
+      document.getElementById('entry-words').value = '';
+      document.getElementById('entry-sentence').value = '';
+    }
+
+    /**
+     * ============================================================================
+     * 模块 2：卡片复习（3D翻转 + 空白田字格手写识别正确率统计）
+     * ============================================================================
+     */
+    function shuffleArray(arr) {
+      const a = [...arr];
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
+    function startReviewSession(toast = false) {
+      const unmastered = state.words.filter(w => !w.mastered);
+      state.reviewQueue = shuffleArray(unmastered.map(w => w.char));
+      state.reviewIdx = 0;
+      if (toast && state.reviewQueue.length > 0) {
+        showToast('已随机打乱复习卡片顺序');
+      }
+      loadCurrentReviewCard();
+    }
+
+    function loadCurrentReviewCard() {
+      const unmastered = state.words.filter(w => !w.mastered);
+      state.reviewQueue = state.reviewQueue.filter(c => unmastered.some(w => w.char === c));
+
+      const emptyEl = document.getElementById('review-empty-state');
+      const stageEl = document.getElementById('review-card-stage');
+
+      if (state.reviewQueue.length === 0) {
+        emptyEl.classList.remove('hidden');
+        stageEl.classList.add('hidden');
+        return;
+      }
+
+      emptyEl.classList.add('hidden');
+      stageEl.classList.remove('hidden');
+
+      if (state.reviewIdx >= state.reviewQueue.length) {
+        state.reviewIdx = 0;
+        state.reviewQueue = shuffleArray(state.reviewQueue);
+      }
+
+      const currentChar = state.reviewQueue[state.reviewIdx];
+      const item = state.words.find(w => w.char === currentChar);
+      if (!item) return;
+
+      // 确保卡片翻回正面
+      document.getElementById('review-flip-inner').classList.remove('is-flipped');
+      state.hasEvaluatedCurrent = false;
+
+      // 顶部计数与正面信息
+      document.getElementById('review-counter-label').textContent = `第 ${state.reviewIdx + 1} / ${state.reviewQueue.length} 字`;
+      document.getElementById('front-grade-tag').textContent = item.grade || '三年级';
+      document.getElementById('front-progress-dots').innerHTML = renderDotsHtml(item.count || 0);
+      document.getElementById('front-pinyin').textContent = item.pinyin;
+
+      // 生成带拼音的挖空提示词（取前 2-3 个组词防止同音字混淆）
+      const hintWords = (item.words || []).slice(0, 3);
+      document.getElementById('front-masked-hints').innerHTML = hintWords.map(w => {
+        const wordPy = getPinyin(w);
+        const masked = w.replaceAll(item.char, '<span class="text-cinnabar font-bold">□</span>');
+        return `
+          <span class="px-3 py-1 rounded-xl bg-bg border border-line text-xs sm:text-sm font-medium text-ink">
+            ${masked} <span class="text-muted text-xs">(${wordPy})</span>
+          </span>
+        `;
+      }).join('');
+
+      // 预设背面信息
+      document.getElementById('back-char-title').textContent = item.char;
+      document.getElementById('back-pinyin-title').textContent = item.pinyin;
+      document.getElementById('back-words-tags').innerHTML = (item.words || []).map(w => `
+        <span class="px-3 py-1 rounded-xl bg-subtle text-xs sm:text-sm font-medium text-ink">
+          ${highlightTargetChar(w, item.char)}
+        </span>
+      `).join('');
+      document.getElementById('back-sentence-box').innerHTML = highlightTargetChar(item.sentence || '', item.char);
+
+      // 初始化正面空白田字格手写识别
+      initFrontBlankQuiz(item);
+    }
+
+    function initFrontBlankQuiz(item) {
+      const box = document.getElementById('front-quiz-box');
+      box.innerHTML = '';
+      state.currentMistakes = 0;
+      state.lastAccuracy = 100;
+
+      document.getElementById('front-stroke-status').textContent = '请在空白田字格中手写默写';
+      const accEl = document.getElementById('front-accuracy-val');
+      accEl.textContent = '100%';
+      accEl.className = 'text-jade font-bold';
+
+      const size = Math.min(box.clientWidth || 230, box.clientHeight || 230) - 16;
+
+      state.frontWriter = HanziWriter.create(box, item.char, {
+        width: size,
+        height: size,
+        padding: 10,
+        showCharacter: false,
+        showOutline: false, // 空白田字格，不展示轮廓，真实考核默写能力
+        showHintAfterMisses: 2, // 连续错2次才给笔画闪烁提示
+        highlightOnComplete: true,
+        strokeColor: '#1E242B',
+        drawingColor: '#D64541',
+        drawingWidth: 24,
+        onLoadCharDataSuccess: (charData) => {
+          state.currentTotalStrokes = (charData && charData.strokes && charData.strokes.length) || 8;
+        }
+      });
+
+      state.frontWriter.quiz({
+        onMistake: (strokeData) => {
+          state.currentMistakes = strokeData.totalMistakes;
+          const acc = computeAccuracy(state.currentTotalStrokes, state.currentMistakes);
+          state.lastAccuracy = acc;
+          updateFrontAccuracyUI(acc, `第 ${strokeData.strokeNum + 1} 笔有误，请再试`);
+        },
+        onCorrectStroke: (strokeData) => {
+          const acc = computeAccuracy(state.currentTotalStrokes, strokeData.totalMistakes);
+          state.lastAccuracy = acc;
+          updateFrontAccuracyUI(acc, `已完成 ${strokeData.strokeNum + 1} / ${state.currentTotalStrokes} 笔`);
+        },
+        onComplete: (summaryData) => {
+          const acc = computeAccuracy(state.currentTotalStrokes, summaryData.totalMistakes);
+          state.lastAccuracy = acc;
+          updateFrontAccuracyUI(acc, '书写完成，正在翻转卡片...');
+          setTimeout(() => {
+            flipCardToBack(true);
+          }, 550);
+        }
+      });
+    }
+
+    function computeAccuracy(totalStrokes, mistakes) {
+      const denom = Math.max(totalStrokes + mistakes, 1);
+      return Math.max(0, Math.round((totalStrokes / denom) * 100));
+    }
+
+    function updateFrontAccuracyUI(acc, statusText) {
+      document.getElementById('front-stroke-status').textContent = statusText;
+      const accEl = document.getElementById('front-accuracy-val');
+      accEl.textContent = `${acc}%`;
+      accEl.className = acc >= 80 ? 'text-jade font-bold' : 'text-cinnabar font-bold';
+    }
+
+    function resetFrontHandwriting() {
+      const currentChar = state.reviewQueue[state.reviewIdx];
+      const item = state.words.find(w => w.char === currentChar);
+      if (item) initFrontBlankQuiz(item);
+    }
+
+    // 翻转至卡片背面并评定是否掌握+1（满3次归入已掌握）
+    function flipCardToBack(completedByWriting) {
+      const currentChar = state.reviewQueue[state.reviewIdx];
+      const item = state.words.find(w => w.char === currentChar);
+      if (!item) return;
+
+      const badgeEl = document.getElementById('back-eval-badge');
+
+      if (!state.hasEvaluatedCurrent) {
+        state.hasEvaluatedCurrent = true;
+
+        if (completedByWriting && state.lastAccuracy >= 80) {
+          item.count = (item.count || 0) + 1;
+          if (item.count >= 3) {
+            item.count = 3;
+            item.mastered = true;
+            badgeEl.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-jade text-white';
+            badgeEl.innerHTML = `<i class="fa-solid fa-award"></i><span>识别正确率 ${state.lastAccuracy}% · 满 3 次已掌握！</span>`;
+          } else {
+            badgeEl.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-jade/10 text-jade';
+            badgeEl.innerHTML = `<i class="fa-solid fa-circle-check"></i><span>识别正确率 ${state.lastAccuracy}% · 掌握度 ${item.count}/3</span>`;
+          }
+        } else if (completedByWriting) {
+          // 正确率低于 80%，不加次数
+          badgeEl.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-cinnabar/10 text-cinnabar';
+          badgeEl.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i><span>识别正确率 ${state.lastAccuracy}% · 需强化记忆 (${item.count || 0}/3)</span>`;
+        } else {
+          // 直接点击翻转看答案
+          badgeEl.className = 'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-subtle text-muted';
+          badgeEl.innerHTML = `<i class="fa-solid fa-eye"></i><span>查看答案与造词造句 (${item.count || 0}/3)</span>`;
+        }
+        saveWords();
+      }
+
+      document.getElementById('back-progress-dots').innerHTML = renderDotsHtml(item.count || 0);
+      document.getElementById('review-flip-inner').classList.add('is-flipped');
+
+      // 播放背面田字格笔顺动画
+      setTimeout(() => {
+        replayBackStroke(1);
+      }, 280);
+    }
+
+    function replayBackStroke(speed = 1) {
+      const currentChar = state.reviewQueue[state.reviewIdx];
+      if (!currentChar) return;
+      const box = document.getElementById('back-anim-box');
+      box.innerHTML = '';
+      const size = Math.min(box.clientWidth || 165, box.clientHeight || 165) - 12;
+
+      state.backWriter = HanziWriter.create(box, currentChar, {
+        width: size,
+        height: size,
+        padding: 8,
+        showOutline: true,
+        strokeAnimationSpeed: speed,
+        delayBetweenStrokes: speed < 1 ? 400 : 180,
+        strokeColor: '#1E242B',
+        radicalColor: '#D64541',
+        outlineColor: '#E4DFD3',
+        onLoadCharDataSuccess: () => {
+          state.backWriter.animateCharacter();
+        }
+      });
+    }
+
+    function flipBackToFrontRewrite() {
+      document.getElementById('review-flip-inner').classList.remove('is-flipped');
+      setTimeout(() => {
+        resetFrontHandwriting();
+      }, 250);
+    }
+
+    function nextReviewCard() {
+      const currentChar = state.reviewQueue[state.reviewIdx];
+      const item = state.words.find(w => w.char === currentChar);
+      if (item && item.mastered) {
+        state.reviewQueue.splice(state.reviewIdx, 1);
+      } else {
+        state.reviewIdx++;
+      }
+      loadCurrentReviewCard();
+    }
+
+    /**
+     * ============================================================================
+     * 模块 3：我的字库（待复习 / 已掌握 / 详情与K12导入）
+     * ============================================================================
+     */
+    function setLibraryStatus(status) {
+      state.libStatus = status;
+      const btnLearn = document.getElementById('lib-tab-learning');
+      const btnMaster = document.getElementById('lib-tab-mastered');
+
+      if (status === 'learning') {
+        btnLearn.className = 'px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-surface text-ink shadow-2xs transition';
+        btnMaster.className = 'px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-muted hover:text-ink transition';
+      } else {
+        btnMaster.className = 'px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-surface text-jade shadow-2xs transition';
+        btnLearn.className = 'px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold text-muted hover:text-ink transition';
+      }
+      renderLibraryGrid();
+    }
+
+    function matchStage(grade, filterVal) {
+      if (filterVal === 'ALL') return true;
+      if (filterVal === '小学') return ['一年级', '二年级', '三年级', '四年级', '五年级', '六年级'].includes(grade);
+      if (filterVal === '初中') return ['初一', '初二', '初三'].includes(grade);
+      if (filterVal === '高中') return ['高一', '高二', '高三'].includes(grade);
+      return true;
+    }
+
+    function renderLibraryGrid() {
+      const stageFilter = document.getElementById('lib-grade-filter').value;
+      const isMasteredTab = state.libStatus === 'mastered';
+
+      const list = state.words.filter(w =>
+        Boolean(w.mastered) === isMasteredTab && matchStage(w.grade, stageFilter)
+      );
+
+      const grid = document.getElementById('library-grid');
+      if (list.length === 0) {
+        grid.innerHTML = `
+          <div class="col-span-full bg-surface rounded-3xl border border-line p-12 text-center text-sm text-muted">
+            当前分类下暂无汉字
+          </div>
+        `;
+        return;
+      }
+
+      grid.innerHTML = list.map(item => `
+        <div onclick="openDetailModal('${item.char}')"
+          class="bg-surface rounded-2xl border border-line hover:border-cinnabar/60 p-4 cursor-pointer transition shadow-2xs hover:shadow-md flex flex-col justify-between gap-3">
+          <div class="flex items-start justify-between">
+            <span class="text-xs px-2 py-0.5 rounded-md bg-subtle text-muted">${item.grade || '三年级'}</span>
+            ${
+              item.mastered
+                ? `<span class="text-[11px] font-semibold text-jade bg-jade/10 px-2 py-0.5 rounded-full">已掌握</span>`
+                : `<div class="flex items-center gap-1 pt-1">${renderDotsHtml(item.count || 0)}</div>`
+            }
+          </div>
+
+          <div class="text-center my-1">
+            <div class="text-xs font-bold text-cinnabar mb-0.5">${item.pinyin}</div>
+            <div class="text-4xl font-serif font-bold text-ink">${item.char}</div>
+          </div>
+
+          <div class="text-xs text-muted text-center truncate">
+            ${(item.words || []).slice(0, 3).join(' · ')}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function openDetailModal(char) {
+      const item = state.words.find(w => w.char === char);
+      if (!item) return;
+
+      document.getElementById('modal-char').textContent = item.char;
+      document.getElementById('modal-pinyin').textContent = item.pinyin;
+      document.getElementById('modal-grade').textContent = item.grade || '三年级';
+      document.getElementById('modal-words').innerHTML = (item.words || []).map(w =>
+        `<span class="px-2.5 py-1 rounded-lg bg-subtle text-xs font-medium">${highlightTargetChar(w, item.char)}</span>`
+      ).join('');
+      document.getElementById('modal-sentence').innerHTML = highlightTargetChar(item.sentence || '', item.char);
+
+      const toggleBtn = document.getElementById('modal-toggle-status-btn');
+      if (item.mastered) {
+        toggleBtn.textContent = '移回待复习 (重置为 0/3)';
+        toggleBtn.onclick = () => {
+          item.mastered = false;
+          item.count = 0;
+          saveWords();
+          renderLibraryGrid();
+          closeDetailModal();
+          showToast(`已将「${item.char}」移回待复习`);
+        };
+      } else {
+        toggleBtn.textContent = '直接标为已掌握 (3/3)';
+        toggleBtn.onclick = () => {
+          item.mastered = true;
+          item.count = 3;
+          saveWords();
+          renderLibraryGrid();
+          closeDetailModal();
+          showToast(`已将「${item.char}」归入已掌握`);
+        };
+      }
+
+      document.getElementById('modal-delete-btn').onclick = () => {
+        state.words = state.words.filter(w => w.char !== item.char);
+        saveWords();
+        renderLibraryGrid();
+        closeDetailModal();
+        showToast(`已删除「${item.char}」`);
+      };
+
+      document.getElementById('detail-modal').classList.remove('hidden');
+
+      const box = document.getElementById('modal-hanzi-box');
+      box.innerHTML = '';
+      setTimeout(() => {
+        state.modalWriter = HanziWriter.create(box, item.char, {
+          width: 156,
+          height: 156,
+          padding: 8,
+          showOutline: true,
+          strokeColor: '#1E242B',
+          radicalColor: '#D64541',
+          outlineColor: '#E4DFD3',
+          onLoadCharDataSuccess: () => state.modalWriter.animateCharacter()
+        });
+      }, 40);
+    }
+
+    function closeDetailModal() {
+      document.getElementById('detail-modal').classList.add('hidden');
+    }
+
+    /**
+     * ============================================================================
+     * K12 字库批量导入与导出
+     * ============================================================================
+     */
+    function openImportModal() {
+      document.getElementById('import-modal').classList.remove('hidden');
+    }
+
+    function closeImportModal() {
+      document.getElementById('import-modal').classList.add('hidden');
+    }
+
+    function confirmImportJson() {
+      const raw = document.getElementById('import-json-input').value.trim();
+      if (!raw) {
+        showToast('请粘贴 JSON 数组');
+        return;
+      }
+      try {
+        const arr = JSON.parse(raw);
+        if (!Array.isArray(arr)) throw new Error('Not array');
+        let count = 0;
+        arr.forEach(entry => {
+          const char = ((entry.char || '').match(/[\u4e00-\u9fa5]/) || [])[0];
+          if (!char) return;
+          const words = parseWordArray(entry.words || BUILTIN_DICT[char]?.words || [char]);
+          const pinyin = entry.pinyin || getPinyin(char, words);
+          const sentence = entry.sentence || BUILTIN_DICT[char]?.sentence || `练习书写「${char}」字。`;
+          const grade = entry.grade || '三年级';
+
+          if (!state.words.some(w => w.char === char)) {
+            state.words.push({
+              char,
+              pinyin,
+              words,
+              sentence,
+              grade,
+              count: entry.count || 0,
+              mastered: Boolean(entry.mastered)
+            });
+            count++;
+          }
+        });
+        saveWords();
+        renderLibraryGrid();
+        closeImportModal();
+        showToast(`成功导入 ${count} 个生字`);
+      } catch (e) {
+        showToast('JSON 格式有误，请检查');
+      }
+    }
+
+    function exportJsonData() {
+      const blob = new Blob([JSON.stringify(state.words, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `错字本字库_${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function restoreInitialWords() {
+      state.words = JSON.parse(JSON.stringify(INITIAL_WORDS));
+      saveWords();
+      renderLibraryGrid();
+      closeImportModal();
+      showToast('已恢复默认演示字库');
+    }
+
+    /**
+     * ============================================================================
+     * 顶部分段 Tab 切换与全局初始化
+     * ============================================================================
+     */
+    function switchTab(tab) {
+      state.tab = tab;
+      ['entry', 'review', 'library'].forEach(t => {
+        document.getElementById(`view-${t}`).classList.toggle('hidden', t !== tab);
+        const btn = document.getElementById(`tab-btn-${t}`);
+        if (t === tab) {
+          btn.className = 'px-5 sm:px-7 py-2 rounded-xl text-sm font-semibold bg-surface text-ink shadow-xs transition-all flex items-center gap-1.5';
+        } else {
+          btn.className = 'px-5 sm:px-7 py-2 rounded-xl text-sm font-semibold text-muted hover:text-ink transition-all flex items-center gap-1.5';
+        }
+      });
+
+      if (tab === 'entry') {
+        setTimeout(() => renderEntryWriter(state.entryChar || '拔', 1), 30);
+      } else if (tab === 'review') {
+        startReviewSession(false);
+      } else if (tab === 'library') {
+        renderLibraryGrid();
+      }
+    }
+
+    function showToast(msg) {
+      const box = document.getElementById('toast-box');
+      const el = document.createElement('div');
+      el.className = 'px-4 py-2 rounded-full bg-ink/90 text-white text-xs font-medium shadow-md animate-fade';
+      el.textContent = msg;
+      box.innerHTML = '';
+      box.appendChild(el);
+      setTimeout(() => el.remove(), 2200);
+    }
+
+    window.onload = function () {
+      loadWords();
+      // 初始化录入页默认示例「拔」
+      document.getElementById('entry-char').value = '拔';
+      onEntryCharInput();
+      setLibraryStatus('learning');
+      switchTab('entry');
+    };
+  </script>
+</body>
+</html>
