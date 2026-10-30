@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="我的应用">
   <title>我的应用中心</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -18,7 +21,7 @@
     }
     .header {
       text-align: center;
-      margin-bottom: 28px;
+      margin-bottom: 24px;
     }
     .header h1 {
       font-size: 24px;
@@ -28,6 +31,16 @@
     .header p {
       font-size: 14px;
       color: #6e6e73;
+    }
+    .status-badge {
+      display: inline-block;
+      margin-top: 8px;
+      padding: 4px 10px;
+      font-size: 12px;
+      border-radius: 20px;
+      background-color: #e8f5e9;
+      color: #2e7d32;
+      font-weight: 500;
     }
     .nav-list {
       width: 100%;
@@ -79,6 +92,7 @@
   <div class="header">
     <h1>📱 我的应用导航</h1>
     <p>点击下方卡片直接打开对应项目</p>
+    <div id="sw-status" class="status-badge">正在检查离线缓存...</div>
   </div>
 
   <div class="nav-list">
@@ -114,6 +128,26 @@
       <span class="arrow">›</span>
     </a>
   </div>
+
+  <!-- 离线缓存激活脚本 -->
+  <script>
+    const statusEl = document.getElementById('sw-status');
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then(reg => {
+            statusEl.textContent = '✅ 已支持离线打开（断网可用）';
+          })
+          .catch(err => {
+            statusEl.textContent = '⚠️ 需配合 sw.js 文件启用离线功能';
+            statusEl.style.backgroundColor = '#fff3e0';
+            statusEl.style.color = '#ef6c00';
+          });
+      });
+    } else {
+      statusEl.style.display = 'none';
+    }
+  </script>
 
 </body>
 </html>
